@@ -11,6 +11,7 @@
 namespace rmcgirr83\nationalflags\controller;
 
 use Symfony\Component\HttpFoundation\Response;
+use phpbb\exception\http_exception;
 
 /**
 * Main controller
@@ -125,7 +126,6 @@ class main_controller
 	/**
 	 * Display the flags page
 	 *
-	 * @return \Symfony\Component\HttpFoundation\Response A Symfony Response object
 	 * @access public
 	 */
 	public function displayFlags()
@@ -134,6 +134,12 @@ class main_controller
 		if (empty($this->config['allow_flags']))
 		{
 			redirect(append_sid("{$this->root_path}index.{$this->php_ext}"));
+		}
+
+		// If setting in ACP is set to not allow guests and bots to view the flags
+		if (empty($this->config['flags_display_to_guests']) && ($this->user->data['is_bot'] || $this->user->data['user_id'] == ANONYMOUS))
+		{
+			throw new http_exception(401, 'NOT_AUTHORISED');
 		}
 
 		//let's get the flags
@@ -153,14 +159,8 @@ class main_controller
 			$flag_id = $row['flag_id'];
 			$user_count = $row['user_count'];
 			$users_count = $users_count + $user_count;
-			if ($user_count == 1)
-			{
-				$user_flag_count = $this->user->lang('FLAG_USER', $user_count);
-			}
-			else
-			{
-				$user_flag_count = $this->user->lang('FLAG_USERS', $user_count);
-			}
+			$user_flag_count = $this->user->lang('FLAG_USERS', (int) $user_count);
+
 			$flag_image = $this->functions->get_user_flag($row['flag_id']);
 
 			$this->template->assign_block_vars('flag', array(
@@ -171,23 +171,9 @@ class main_controller
 		}
 		$this->db->sql_freeresult($result);
 
-		if ($users_count == 1)
-		{
-			$flag_users = $this->user->lang('FLAG_USER', $users_count);
-		}
-		else
-		{
-			$flag_users = $this->user->lang('FLAG_USERS', $users_count);
-		}
+		$flag_users = $this->user->lang('FLAG_USERS', (int) $users_count);
 
-		if ($countries == 1)
-		{
-			$countries = $this->user->lang('FLAG', $countries);
-		}
-		else
-		{
-			$countries = $this->user->lang('FLAGS', $countries);
-		}
+		$countries = $this->user->lang('FLAGS', (int) $countries);
 
 		$this->template->assign_vars(array(
 			'L_FLAGS'	=> $countries . '&nbsp;&nbsp;' . $flag_users,
@@ -209,7 +195,6 @@ class main_controller
 	 *
 	 * @param $flag_id	int		the id of the flag
 	 * @param $page		int		page number we are on
-	 * @return \Symfony\Component\HttpFoundation\Response A Symfony Response object
 	 * @access public
 	 */
 	public function getFlags($flag_id, $page = 0)
@@ -220,12 +205,18 @@ class main_controller
 			redirect(append_sid("{$this->root_path}index.{$this->php_ext}"));
 		}
 
+		// If setting in ACP is set to not allow guests and bots to view the flags
+		if (empty($this->config['flags_display_to_guests']) && ($this->user->data['is_bot'] || $this->user->data['user_id'] == ANONYMOUS))
+		{
+			throw new http_exception(401, 'NOT_AUTHORISED');
+		}
+
 		$flags = $this->cache->get('_user_flags');
 
 		// ensure our flag id passed actually exists in the cache
 		if (!isset($flags[$flag_id]))
 		{
-			throw new \RunTimeException($this->user->lang('FLAG_NOT_EXIST'));
+			throw new http_exception(404, 'FLAG_NOT_EXIST');
 		}
 
 		$flag_name = $flags[$flag_id]['flag_name'];
@@ -244,7 +235,7 @@ class main_controller
 	/**
 	 * Display flag
 	 *
-	 * @param $flag_id	int		the id of the flag
+	 * @param $flag_id		int		the id of the flag
 	 * @param $start		int		page number we start at
 	 * @param $limit		int		limit to display for pagination
 	 * @return null
@@ -306,14 +297,8 @@ class main_controller
 		$flag_image = $this->functions->get_user_flag($row['flag_id']);
 
 		$users_count = $total_users;
-		if ($total_users == 1)
-		{
-			$total_users = $this->user->lang('FLAG_USER', $total_users);
-		}
-		else
-		{
-			$total_users = $this->user->lang('FLAG_USERS', $total_users);
-		}
+
+		$total_users = $this->user->lang('FLAG_USERS', (int) $total_users);
 
 		$this->template->assign_vars(array(
 			'FLAG'			=> html_entity_decode($row['flag_name']),

@@ -46,15 +46,15 @@ class nationalflags
 	/**
 	 * Constructor
 	 *
-	 * @param \phpbb\config\config               $config         Config object
-	 * @param \phpbb\controller\helper           $helper         Controller helper object
-	 * @param \phpbb\cache\service				$cache			Cache object
-	 * @param \phpbb\db\driver\driver			$db				Database object
-	 * @param \phpbb\template\template           $template       Template object
-	 * @param \phpbb\user                        $user           User object
-	 * @param string								$flags_table	Name of the table used to store flag data
-	 * @param \phpbb\extension\manager			$ext_manager		Extension manager object
-	 * @param \phpbb\path_helper					$path_helper	Path helper object
+	 * @param \phpbb\config\config			$config				Config object
+	 * @param \phpbb\controller\helper		$helper				Controller helper object
+	 * @param \phpbb\cache\service			$cache				Cache object
+	 * @param \phpbb\db\driver\driver		$db					Database object
+	 * @param \phpbb\template\template		$template			Template object
+	 * @param \phpbb\user					$user				User object
+	 * @param string						$flags_table		Name of the table used to store flag data
+	 * @param \phpbb\extension\manager		$ext_manager		Extension manager object
+	 * @param \phpbb\path_helper			$path_helper		Path helper object
 	 */
 	public function __construct(
 			\phpbb\config\config $config,
@@ -163,6 +163,12 @@ class nationalflags
 	 */
 	public function top_flags()
 	{
+
+		// If setting in ACP is set to not allow guests and bots to view the flags
+		if (empty($this->config['flags_display_to_guests']) && ($this->user->data['is_bot'] || $this->user->data['user_id'] == ANONYMOUS))
+		{
+			return;
+		}
 		// grab all the flags
 		$sql_array = array(
 			'SELECT'	=> 'user_flag, COUNT(user_flag) AS fnum',
@@ -183,7 +189,7 @@ class nationalflags
 			++$count;
 			$this->template->assign_block_vars('flag', array(
 				'FLAG' 			=> $this->get_user_flag($row['user_flag']),
-				'L_FLAG_USERS'	=> ($row['fnum'] == 1) ? $this->user->lang('FLAG_USER', $row['fnum']) : $this->user->lang('FLAG_USERS', $row['fnum']),
+				'FLAG_USERS'	=> $this->user->lang('FLAG_USERS', (int) $row['fnum']),
 				'U_FLAG'		=> $this->helper->route('rmcgirr83_nationalflags_getflags', array('flag_id' => $flags[$row['user_flag']]['flag_id'])),
 			));
 		}
